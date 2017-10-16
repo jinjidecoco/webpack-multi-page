@@ -2,21 +2,24 @@ var path = require('path');
 var webpack = require('webpack');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var WebpackDevServer = require('webpack-dev-server');
-
 var HtmlWebpackPlugin = require('html-webpack-plugin');
-var glob =require('glob');
+var UglifyJsPlugin = webpack.optimize.UglifyJsPlugin;
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+var glob =require('glob');
 var entrys = {};
 glob.sync("./src/js/*.js").forEach(function(name){
     entrys[path.basename(name, '.js')] = name;
 });
-
+var chunks = Object.keys(entrys);
 module.exports ={
    entry: entrys,
    output:{
-     path: __dirname+'/build/',
+     path: __dirname + '/build/',
      filename: 'js/[name].js',
-      publicPath : '.'
+     publicPath: '/static/',
+     chunkFilename: 'chunk/[name].chunk.js'
    },
    module:{
        loaders:[
@@ -38,7 +41,7 @@ module.exports ={
             },
             {
                test:/\.html$/,
-               loader: "html?attrs=img:src img:data-src"
+               loader: "html-loader?attrs=img:src img:data-src"
             },
             {
               test: /\.(woff|woff2|ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -52,24 +55,60 @@ module.exports ={
             }
          ]
        },
+
        plugins:[
-         new webpack.ProvidePlugin({ //加载jq
+          new webpack.ProvidePlugin({ //加载jq
               $: 'jquery',
               jQuery: 'jquery'
           }),
           new webpack.optimize.CommonsChunkPlugin({
-            name:'vendors',
+            name:'vendor',
+            filename: isProduction ? 'js/vendor.[hash:8].js':'js/vendor.js',
             minChunks:3
           }),
-          new ExtractTextPlugin('css/[name].css'),
-          new webpack.HotModuleReplacementPlugin()
-       ],
-   devServer: {
-        contentBase: './',
-        host: 'localhost',
-        port: 9292, //默认8080s
-        inline: true, //可以监控js变化
-        hot: true, //热启动
-    }
+          new ExtractTextPlugin(isProduction ? 'css/[name].[hash:8].css':'css/[name].css'),
 
-}
+          isProduction ? new UglifyJsPlugin({ //压缩代码
+              compress: {
+                  warnings: false
+              },
+              except: ['$super', '$', 'exports', 'require'] //排除关键字
+          }) : function(){}
+       ],
+       devtool: isProduction ? false : 'source-map',
+       devServer: {
+          hot: true,
+	        publicPath: '/',
+	        historyApiFallback: true,
+	        stats: "errors-only",
+          noInfo: false
+      }
+          // devServer: {
+          //    contentBase: './src/',
+          //    historyApiFallback: true,
+          //    hot: true,
+          //   //  port: defaultSettings.port,
+          //    publicPath: '/assets/',
+          //    noInfo: false
+          // }
+};
+
+chunks.forEach(function(pathname){
+  if( pathname == 'vendor'){
+    return;
+  }
+  var conf ={
+    filename:pathname + '.html',
+    template: './src/view/' + pathname +'.html',
+    inject: 'body',
+    minify: {
+      removeComments: true,
+      collapseWhitespace: false
+    }
+  };
+ if( pathname in module.exports.entry) {
+    conf.chunks = ['vendor', pathname];
+    conf.hash = false;
+  }
+   module.exports.plugins.push(new  HtmlWebpackPlugin(conf));
+});

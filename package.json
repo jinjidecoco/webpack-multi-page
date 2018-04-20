@@ -2,11 +2,12 @@
   "name": "webpack-multi-page",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "webpack.config.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node server",
-    "build": "rm -rf build/* views/* && NODE_ENV=production webpack --progress --hide-modules"
+    "dev": "webpack-dev-server --open --inline --progress  ",
+    "build": "rm -rf build/* views/* && NODE_ENV=production webpack --progress --hide-modules",
+    "clean": "rm -rf build/"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
     "css-loader": "^0.28.7",
     "extract-text-webpack-plugin": "^3.0.1",
     "file-loader": "^1.1.5",
+    "glob": "^7.1.2",
     "html-loader": "^0.5.1",
     "html-webpack-plugin": "^2.30.1",
     "less": "^3.0.0-alpha.3",
@@ -37,7 +39,6 @@
     "webpack-dev-server": "^2.9.1"
   },
   "dependencies": {
-    "glob": "^7.1.2",
     "jquery": "^3.2.1"
   }
 }
